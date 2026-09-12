@@ -1,0 +1,816 @@
+<title>The Words</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Almarai:wght@400;700&display=swap">
+<style>
+  :root{
+    --bg:#F4EFE6;        /* warm paper */
+    --card:#FFFFFF;
+    --ink:#1E1A12;       /* near-black ink */
+    --dim:#5E5548;
+    --jade:#17A673;      /* fills and rules only */
+    --deep:#0E5C43;      /* jade dark enough to read as text */
+    --soft:#E7F5EE;
+    --amber:#8A5A00;
+    --amberbg:#FDF3DC;
+    --red:#A82E20;
+    --redbg:#FBEBE8;
+    --line:rgba(40,32,20,.16);
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:Inter,Almarai,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+  #top{position:fixed;top:0;left:0;right:0;height:58px;z-index:30;display:flex;align-items:center;gap:14px;
+       padding:0 18px;background:var(--bg);border-bottom:1px solid var(--line)}
+  #track{flex:1;height:7px;border-radius:4px;background:rgba(40,32,20,.12);overflow:hidden}
+  #fill{height:100%;width:0;background:var(--jade);transition:width .4s cubic-bezier(.4,0,.2,1)}
+  #cnt{font-size:15px;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  #wrap{min-height:100dvh;padding:58px 0 190px}
+  #stage{padding:28px 20px;display:flex;flex-direction:column;gap:20px;max-width:680px;margin:0 auto;width:100%}
+
+  #foot{position:fixed;bottom:0;left:0;right:0;padding:14px 20px calc(16px + env(safe-area-inset-bottom));
+        background:linear-gradient(to top,var(--bg) 72%,rgba(244,239,230,.92) 90%,rgba(244,239,230,0));
+        z-index:30;display:flex;flex-direction:column;gap:10px;align-items:center}
+  #foot > *{width:100%;max-width:600px}
+  .btn{display:block;min-height:62px;border:0;border-radius:14px;font:inherit;font-size:19px;font-weight:800;
+       letter-spacing:.03em;cursor:pointer;transition:.15s;width:100%}
+  .btn:active:not(:disabled){transform:scale(.99)}
+  .btn.go{background:var(--deep);color:#F8F4EC;box-shadow:0 2px 0 rgba(40,32,20,.18)}
+  .btn.ghost{background:var(--card);border:2px solid var(--deep);color:var(--deep)}
+  .btn:disabled{background:transparent;border:2px solid var(--line);color:var(--dim);cursor:default;box-shadow:none}
+
+  .set{font-size:14px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .word{font-size:clamp(44px,12.5vw,72px);line-height:1.02;font-weight:900;letter-spacing:-.035em;
+        color:var(--deep);word-break:break-word;animation:pop .35s ease-out}
+  .word small{display:block;font-size:18px;font-weight:700;color:var(--dim);margin-top:10px;letter-spacing:0}
+  .plain{font-size:29px;line-height:1.38;font-weight:700;color:var(--ink);text-wrap:pretty}
+
+  .blk{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:22px 22px;
+       display:flex;flex-direction:column;gap:10px;animation:rise .35s ease-out both;
+       box-shadow:0 1px 2px rgba(40,32,20,.05)}
+  .blk .h{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--deep)}
+  .blk p{margin:0;font-size:22px;line-height:1.6;color:var(--ink);text-wrap:pretty}
+  .blk.warn{background:var(--redbg);border-color:rgba(168,46,32,.3)}
+  .blk.warn .h{color:var(--red)}
+  .blk.amberish{background:var(--amberbg);border-color:rgba(138,90,0,.3)}
+  .blk.amberish .h{color:var(--amber)}
+
+  .pic{display:flex;flex-direction:column;gap:10px;animation:rise .4s ease-out both}
+  .pic img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:16px;
+           border:1px solid var(--line)}
+  .pic .cap{font-size:19px;line-height:1.45;font-weight:600;color:var(--dim);
+            border-left:4px solid var(--jade);padding-left:14px;text-wrap:pretty}
+  .noart{border:2px dashed var(--line);border-radius:16px;padding:20px}
+  .noart span{font-size:18px;line-height:1.5;color:var(--dim)}
+
+  code{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--deep);
+       background:var(--soft);padding:3px 8px;border-radius:6px}
+
+  .qh{font-size:14px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+  .q{font-size:29px;line-height:1.32;font-weight:800;letter-spacing:-.015em;color:var(--ink);text-wrap:pretty}
+  .opts{display:flex;flex-direction:column;gap:12px}
+  .opt{display:flex;gap:14px;align-items:center;min-height:72px;padding:18px 20px;
+       border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);
+       font:inherit;font-size:21px;line-height:1.35;font-weight:600;text-align:left;width:100%;
+       cursor:pointer;transition:.16s;box-shadow:0 1px 2px rgba(40,32,20,.05)}
+  .opt:active:not(:disabled){transform:scale(.99)}
+  .opt .n{font-size:15px;font-weight:900;color:var(--dim);min-width:18px}
+  .opt.right{border-color:var(--jade);background:var(--soft);color:var(--deep)}
+  .opt.right .n{color:var(--deep)}
+  .opt.wrong{border-color:var(--red);background:var(--redbg);color:var(--red)}
+  .opt.wrong .n{color:var(--red)}
+  .opt.dead{opacity:.45;box-shadow:none}
+  .fb{border-left:5px solid var(--jade);padding:4px 0 4px 16px;font-size:22px;line-height:1.6;
+      color:var(--ink);animation:rise .3s ease-out}
+  .fb.no{border-color:var(--red)}
+  .fb b{font-weight:800}
+
+  .big{font-size:clamp(64px,20vw,112px);font-weight:900;line-height:.9;letter-spacing:-.045em;
+       color:var(--deep);font-variant-numeric:tabular-nums}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{font-size:17px;font-weight:700;padding:9px 15px;border-radius:99px;background:var(--soft);color:var(--deep)}
+  .chip.shaky{background:var(--amberbg);color:var(--amber)}
+
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes pop{0%{transform:scale(.94);opacity:0}60%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
+</style>
+
+<div id="top"><div id="track"><div id="fill"></div></div><div id="cnt">0 / 0</div></div>
+<div id="wrap"><div id="stage"></div></div>
+<div id="foot"><button class="btn ghost" id="more">Explain more</button><button class="btn go" id="next">Start</button></div>
+
+<script>
+const W=[
+{g:"Part 1 · Things on a computer",w:"File",
+ say:"A file is writing the computer keeps. It has a name.",
+ more:[
+  ["Another way","Picture one sheet of paper with a name at the top. The computer keeps millions of sheets like that."],
+  ["In your factory","A job card in your office. There is writing on it. It has a name so you can find it again tomorrow."],
+  ["Real one","ALRASSAI.md is a file. That is its name. Inside it is writing: your rules."],
+  ["What it is NOT","A file does nothing on its own. It only sits there and holds writing. Something else has to open it."]],
+ q:"What does every file have?",a:["A name","A price","A colour"],c:0,
+ ok:"Yes. Without a name nobody could find it again.",
+ no:"Think of the job card. The thing written at the top so you can find it. That is the name.",
+ q2:"Does a file do anything by itself?",a2:["Yes, it works on its own","No, it just holds writing"],c2:1,
+ ok2:"Right. It waits. Something else must open it.",
+ no2:"No. A sheet of paper never does anything by itself. A file is the same."},
+
+{g:"Part 1 · Things on a computer",w:"Folder",
+ say:"A folder is a box that holds files.",
+ more:[
+  ["Another way","A folder can also hold smaller folders. Boxes inside boxes, as deep as you like."],
+  ["In your factory","A drawer in your filing cabinet. It holds job cards. It can also hold small boxes of cards."],
+  ["Real one","There is a folder named training. Inside it are the files for your course."],
+  ["What it is NOT","A folder holds no writing itself. It is only a box. The writing is in the files inside it."]],
+ q:"What goes inside a folder?",a:["Files, and other folders","Only numbers","Nothing ever"],c:0,
+ ok:"Yes. Files, and smaller folders too.",
+ no:"A drawer holds cards, and small boxes of cards. A folder is that drawer.",
+ q2:"Can a folder be inside another folder?",a2:["Yes","No"],c2:0,
+ ok2:"Right. Boxes inside boxes.",no2:"Yes it can. That is how everything stays sorted."},
+
+{g:"Part 1 · Things on a computer",w:"Path",
+ say:"A path is the address of a file. It says which boxes to open, in order.",
+ more:[
+  ["Another way","Read it left to right. Each name is one box. The last name is the file."],
+  ["In your factory","Building two, floor three, cabinet four, drawer one, card seven. Same idea."],
+  ["Real one","<code>training/spec.md</code> means: open the folder named training, then the file named spec.md."],
+  ["What it is NOT","A path is not the writing inside the file. It only says where to find it."]],
+ q:"In <code>training/spec.md</code>, which part is the folder?",a:["training","spec.md","the slash"],c:0,
+ ok:"Yes. It comes first, so it is the box you open first.",
+ no:"Read left to right. The first name is the box. The last name is the file.",
+ q2:"In <code>training/app/words.html</code>, which is the file?",a2:["training","app","words.html"],c2:2,
+ ok2:"Right. The last name is always the file.",no2:"The last one. Everything before it is a box."},
+
+{g:"Part 1 · Things on a computer",w:"Program",
+ say:"A program is a list of steps the computer carries out.",
+ more:[
+  ["Another way","A file holds writing. A program is writing the computer DOES, step by step, from the first to the last."],
+  ["In your factory","A recipe card. The card itself is just a card. Following the recipe is the work."],
+  ["Real one","Your ERP is a program. So is the release gate. So is the thing you are reading now."],
+  ["What it is NOT","A program is kept inside a file, so it looks like any other file. The difference is what it is for: to be carried out, not just read."]],
+ q:"What makes a program different from an ordinary file?",
+ a:["It is longer","It is meant to be carried out","It has no name"],c:1,
+ ok:"Yes. The computer follows its steps.",
+ no:"Length and names do not matter. A program is meant to be followed, step by step.",
+ q2:"Is a recipe card being followed the card, or the cooking?",a2:["The card is the file, the cooking is the program running","They are the same thing"],c2:0,
+ ok2:"Right. The writing sits still. Running it is the work.",
+ no2:"They are different. The card sits still. Following it is the work."},
+
+{g:"Part 1 · Things on a computer",w:"Run",
+ say:"To run a program means to make the computer carry out its steps.",
+ more:[
+  ["Another way","Before it runs, a program is only writing. When it runs, things actually happen."],
+  ["In your factory","Pressing start on the machine. Until then it is just a machine standing there."],
+  ["Real one","Tonight I ran a program that made a picture smaller. Before I ran it, nothing had changed."],
+  ["Useful to know","A program runs, does its steps, and then it is finished. It does not keep going forever."]],
+ q:"What does it mean when I say a program ran?",
+ a:["Somebody read it","The computer carried out its steps","It was deleted"],c:1,
+ ok:"Yes. The steps actually happened.",
+ no:"Running is doing, not reading. The computer carried out the steps.",
+ q2:"A program sits in a folder, never run. Did anything happen?",a2:["Yes","No"],c2:1,
+ ok2:"Right. Writing that is never run does nothing at all.",
+ no2:"No. It is a machine nobody switched on."},
+
+{g:"Part 1 · Things on a computer",w:"Command",
+ say:"A command is one short order you type. The computer carries it out straight away.",
+ more:[
+  ["Another way","Typing a command is usually how you run a program. You type its name and press enter."],
+  ["In your factory","Telling a worker: sweep bay three. One order. He goes and does it."],
+  ["Real one","<code>git push</code> is a command. It means: send my work to the safe copy that lives elsewhere."],
+  ["Useful to know","Commands are short on purpose. Two or three words is normal."]],
+ q:"What is a command?",a:["A file full of writing","One order you type, carried out at once","A kind of folder"],c:1,
+ ok:"Yes. One order, typed, and done.",
+ no:"Not a file and not a box. An order you type, and it happens.",
+ q2:"Is <code>git push</code> a file or a command?",a2:["A file","A command"],c2:1,
+ ok2:"Right. You type it and something happens.",no2:"A command. Nothing is stored. Something is done."},
+
+{g:"Part 1 · Things on a computer",w:"Repository",
+ say:"A repository is the one folder that holds a whole project, and remembers every change ever made to it.",
+ more:[
+  ["The short word","Everyone shortens it to repo. Same thing. I used that word earlier without telling you, and that was my mistake."],
+  ["Another way","An ordinary folder forgets. Change a file and yesterday's version is gone. A repository keeps every old version, and who made each change, and when."],
+  ["In your factory","The full file room for one building project. Every drawing, every order, and every superseded version still filed, dated and signed."],
+  ["Real one","Yours is named ALrassAi. It holds your whole steel system. It can show you any file exactly as it was on any past day."],
+  ["What it is NOT","Not just a big folder. The memory is the whole point."]],
+ q:"What does a repository have that an ordinary folder does not?",
+ a:["More space","Its whole history","A nicer name"],c:1,
+ ok:"Yes. It remembers every version and every change.",
+ no:"Space and names are not it. The repository remembers the past. A plain folder forgets.",
+ q2:"What is a repo?",a2:["A shorter word for repository","A kind of file","A command"],c2:0,
+ ok2:"Right. Same thing, shorter.",no2:"It is just the short word for repository."},
+
+{g:"Part 2 · Working with me",w:"Claude Code",
+ say:"Claude Code is a program that lets me work inside your repository.",
+ more:[
+  ["Another way","Without it, I could only talk. With it, I can open your files, change them, and type commands for you."],
+  ["In your factory","The difference between an engineer on the phone and an engineer standing on your floor with his hands on the machine."],
+  ["Real one","You are using it right now. That is how I read your master file tonight and wrote your training files."],
+  ["Useful to know","It runs on your own machine, in your own repository. Nothing is guessed from memory."]],
+ q:"What does Claude Code let me do that talking alone does not?",
+ a:["Speak Arabic","Open and change your files","Think faster"],c:1,
+ ok:"Yes. It puts my hands on your actual files.",
+ no:"Language and speed are not it. It lets me touch the real files.",
+ q2:"Where does Claude Code work?",a2:["Somewhere far away on its own","Inside your repository"],c2:1,
+ ok2:"Right. In your project, on your files.",no2:"Inside your repository. That is the point of it."},
+
+{g:"Part 2 · Working with me",w:"Session",
+ pic:["l2hook.jpg","Night shift. The bench is swept clean by morning. The next shift knows only what was written down."],
+ say:"A session is one sitting of work with me. It starts when you open it and ends when you close it.",
+ more:[
+  ["Another way","Everything we said tonight is one session. Close it and open a new one, and the new one does not remember this conversation."],
+  ["In your factory","One shift. The next shift only knows what was written down and left on the desk."],
+  ["Real one","This is one session. It started tonight at about nine o'clock."],
+  ["Why it matters","This is exactly why your training files are written to disk at the end. So the next session can pick up where this one stopped."]],
+ q:"Does a new session remember the last one?",a:["Yes, always","No, only what was written down"],c:1,
+ ok:"Yes. Only what was written to a file survives.",
+ no:"No. Like a new shift. It only knows what is written on the desk.",
+ q2:"How many sessions have we had so far?",a2:["One","Ten"],c2:0,
+ ok2:"Right. We never closed it.",no2:"One. It has been running since tonight."},
+
+{g:"Part 2 · Working with me",w:"Tool",
+ pic:["cast.jpg","Machines on a floor. Each one does a single job. That is what a tool is."],
+ say:"A tool is one job I am allowed to do.",
+ more:[
+  ["Another way","I cannot do anything I like. There is a fixed list of jobs. Each job on that list is one tool."],
+  ["In your factory","The machines on your floor. The saw cuts. The drill bores. Each machine does one job and only that job."],
+  ["Real one","Reading a file is one tool. Changing a file is a different tool. Typing a command is a third."],
+  ["What it is NOT","A tool is not a thing you can hold. It is a job that gets done."]],
+ q:"Which of these is a tool?",a:["A rule written in a file","Changing a file","Your attention"],c:1,
+ ok:"Yes. Changing a file is a job that gets done.",
+ no:"A rule is writing. Attention is in your head. Only one of the three is a job.",
+ q2:"Can I do a job that is not on the list of tools?",a2:["Yes","No"],c2:1,
+ ok2:"Right. The list is fixed. That is what makes it safe.",
+ no2:"No. If it is not a tool, I cannot do it at all."},
+
+{g:"Part 2 · Working with me",w:"Tool call",
+ say:"One use of one tool. One time.",
+ more:[
+  ["Another way","Count the uses, not the tools. Using the same tool five times is five tool calls."],
+  ["In your factory","One press of the saw is one cut. Press it again and that is a second cut."],
+  ["Real one","Tonight I made roughly forty tool calls. Each one read a file, changed a file, or ran a command."],
+  ["Why it matters","A lock has to decide at each single use. Not once at the start of the night."]],
+ q:"I read three files. How many tool calls?",a:["One","Three","Zero"],c:1,
+ ok:"Yes. One use each time.",
+ no:"Three uses, so three tool calls. Count the uses.",
+ q2:"I changed one file, twice. How many tool calls?",a2:["One","Two"],c2:1,
+ ok2:"Right. Two uses, even on the same file.",no2:"Two. It is the uses that count, not the files."},
+
+{g:"Part 2 · Working with me",w:"Edit · Write · Bash",
+ say:"Three tools, by the names they really have.",
+ more:[
+  ["One by one","Edit changes part of a file that already exists. Write makes a whole new file, or replaces one completely. Bash runs a command."],
+  ["In your factory","Edit grinds a part you already have. Write casts a brand new part. Bash tells a worker to go and do something."],
+  ["Real one","I used Write to make your course files. I used Bash to run git push. I used Edit to change one line in one file."],
+  ["Useful to know","These names have capital letters, and the capitals matter. Edit is not the same as edit. You will see why later."]],
+ q:"You want to change one line inside a file that already exists. Which tool?",
+ a:["Write","Edit","Bash"],c:1,
+ ok:"Yes. Edit changes part of something that is already there.",
+ no:"Write would replace the whole file. You only wanted one line. That is Edit.",
+ q2:"You want to run <code>git push</code>. Which tool?",a2:["Edit","Bash","Write"],c2:1,
+ ok2:"Right. Commands go through Bash.",no2:"Bash. Edit and Write touch files. Commands are Bash."},
+
+{g:"Part 3 · The lock",w:"Hook",
+ pic:["idea.jpg","Nobody is holding this lever shut. The padlock is. It works while everyone sleeps."],
+ say:"A hook is a small program of yours. The computer runs it by itself, at a moment you choose.",
+ more:[
+  ["The key part","You never start it. You never remember it. It fires on its own, every single time, whether you are awake or not."],
+  ["In your factory","A sensor bolted to the machine. Nobody presses the sensor. It fires by itself the moment the guard door opens."],
+  ["Real one","You have no hooks at all today. That is exactly why nothing stops a change to your master file at three in the morning."],
+  ["What it is NOT","Not a rule written in a document. A rule waits to be read, and it can be missed. A hook runs."]],
+ q:"What makes a hook different from a rule written in a file?",
+ a:["A hook is longer","A hook runs by itself","A hook is in Arabic"],c:1,
+ ok:"Yes. A rule waits to be read. A hook runs on its own.",
+ no:"Length and language do not matter. The difference is that nobody has to remember a hook.",
+ q2:"Who has to remember to start a hook?",a2:["You","Me","Nobody. It starts itself"],c2:2,
+ ok2:"Right. Nobody. That is the whole point of it.",
+ no2:"Nobody. If a person had to remember, it would be a sign, not a lock."},
+
+{g:"Part 3 · The lock",w:"Event",
+ say:"An event is the moment when your hook fires.",
+ more:[
+  ["Another way","An event is always a moment in time. Never a thing, never a file, never a person."],
+  ["In your factory","The sensor fires the moment the guard door opens. That moment is the event."],
+  ["Real one","The moment you care about is: just before a file gets changed."],
+  ["Useful to know","There are several moments to choose from. You pick one. The hook fires at that one and no other."]],
+ q:"Your hook should fire before a file is changed. What is the event?",
+ a:["The file","Just before a file is changed","Your hook"],c:1,
+ ok:"Yes. A moment, not a thing.",
+ no:"An event is always a moment in time. Only one of those three is a moment.",
+ q2:"Is a file an event?",a2:["Yes","No. A file is a thing"],c2:1,
+ ok2:"Right. Things are not moments.",no2:"No. A file is a thing. An event is a moment."},
+
+{g:"Part 3 · The lock",w:"PreToolUse",
+ say:"The name of one event. It means: before a tool is used.",
+ more:[
+  ["Break the word in three","Pre. Tool. Use. Pre means before. So: before-tool-use."],
+  ["Why pre means before","Prepay means pay before. Preview means see before. Same pre."],
+  ["In your factory","The instant the hand reaches the lever, and the lever has not moved yet."],
+  ["Why it matters","Because it happens before, the hook can still stop it. If it happened after, the file would already be changed and it would be too late."]],
+ q:"What does Pre mean?",a:["After","Before","During"],c:1,
+ ok:"Yes. Before. Prepay, preview, pre-tool-use.",
+ no:"Pre always means before. Think of prepay: you pay before.",
+ q2:"When does a PreToolUse hook run?",
+ a2:["After the tool has finished","Before the tool runs","While the tool runs"],c2:1,
+ ok2:"Right. Before. That is why it can still say no.",
+ no2:"Before. If it ran after, the change would already have happened."},
+
+{g:"Part 3 · The lock",w:"Matcher",
+ say:"A matcher says which tools your hook watches.",
+ more:[
+  ["Another way","Your hook does not watch everything. You give it a short list of tool names. It ignores the rest."],
+  ["In your factory","You fit the sensor to the press. Not to the saw, not to the drill. The matcher is that choice of machine."],
+  ["Real one","Writing <code>Edit|Write</code> means: watch Edit, watch Write, ignore everything else. The <code>|</code> mark means or."],
+  ["The trap","The capital letters matter. <code>edit</code> with a small e does not match the tool called <code>Edit</code>. Nothing will fire and nothing will tell you why."]],
+ q:"Your matcher says <code>Edit|Write</code>. Someone runs a command with Bash. Does your hook fire?",
+ a:["Yes","No"],c:1,
+ ok:"Correct. Bash is not on the list, so the hook stays asleep.",
+ no:"Look at the list again. It names Edit and Write only. Bash is not there.",
+ q2:"Which matcher watches Edit and Write, and nothing else?",
+ a2:["<code>Edit|Write</code>","<code>*</code>","<code>edit|write</code>"],c2:0,
+ ok2:"Right. The star would catch every tool. Small letters would catch nothing.",
+ no2:"The star catches everything including Bash. Small letters match nothing at all."},
+
+{g:"Part 4 · How a hook answers",w:"stdin",
+ say:"The information a program is handed the moment it starts.",
+ more:[
+  ["Say it out loud","Standard in. Information going IN. The word in is inside the name."],
+  ["In your factory","The work order slip pushed into the worker's hand as he walks through the door."],
+  ["Real one","Your hook is handed a slip. The slip says which tool is about to be used, and on which file."],
+  ["Why it matters","Your hook never guesses and never asks you. It is told the facts, at the moment it starts."]],
+ q:"How does your hook learn which file is about to change?",
+ a:["It guesses","It is handed the facts on stdin","It asks you"],c:1,
+ ok:"Yes. Told, not guessed.",
+ no:"Never guessing, never asking. It is handed a slip the moment it starts.",
+ q2:"Is stdin information going in, or coming out?",a2:["In","Out"],c2:0,
+ ok2:"Right. The word in is in the name.",no2:"In. Std-IN."},
+
+{g:"Part 4 · How a hook answers",w:"stdout · stderr",
+ say:"Two ways a program talks back. stdout is the normal answer. stderr is the complaint.",
+ more:[
+  ["Say them out loud","Standard out, and standard error. Err is short for error."],
+  ["In your factory","The worker hands you the finished part. That is stdout. The worker shouts that the steel is wrong. That is stderr."],
+  ["Real one","When your hook refuses, it shouts the reason on stderr. I read the shout and change course."],
+  ["Why two","So a complaint never gets mixed into the normal answer. They travel on separate wires."]],
+ q:"Your hook wants to say WHY it refused. Which one carries it?",
+ a:["stdout","stderr"],c:1,
+ ok:"Yes. A refusal is a complaint, so it goes on stderr.",
+ no:"stdout is the normal answer. A reason for refusing is a complaint. That is stderr.",
+ q2:"What is err short for?",a2:["error","errand"],c2:0,
+ ok2:"Right. The complaint wire.",no2:"Error. That is the wire for things going wrong."},
+
+{g:"Part 4 · How a hook answers",w:"Exit code",
+ say:"A number a program leaves behind when it finishes. It says how it went.",
+ more:[
+  ["Another way","The program stops, and the last thing it does is leave one number. Whoever started it reads that number."],
+  ["In your factory","The worker stamps the job card on his way out. Zero means done, fine. Any other number means there was a problem."],
+  ["Real one","Your release gate already works this way. Green gate leaves zero. Red gate leaves something else."],
+  ["The one rule","Zero is the only number that means fine. Every other number means a problem of some kind."]],
+ q:"A program finishes with exit code 0. What does that mean?",
+ a:["It failed","It went fine","It is still going"],c:1,
+ ok:"Yes. Zero is the good one.",
+ no:"Zero is the good one. It is the only number that means fine.",
+ q2:"Exit code 1 means what?",a2:["Fine","There was a problem"],c2:1,
+ ok2:"Right. Anything that is not zero is a problem.",no2:"A problem. Only zero means fine."},
+
+{g:"Part 4 · How a hook answers",w:"exit 2",
+ say:"One special number. Two is the one that BLOCKS.",
+ more:[
+  ["Another way","Most numbers only say there was a problem. The tool still runs. Two is different. Two means do not let this happen at all."],
+  ["In your factory","Most stamps say there was a fault. One stamp means: do not ship this, under any circumstances."],
+  ["Real one","This is the whole lock. Your hook ends by leaving the number 2, and the change does not happen."],
+  ["The trap that catches everyone","One does NOT block. It looks like a refusal. It is only a complaint. The tool runs anyway. Only two blocks."]],
+ q:"Your hook leaves the number 1. Does the change happen?",
+ a:["No, it is blocked","Yes, it happens anyway"],c:1,
+ ok:"Correct, and this is the trap. Only two blocks.",
+ no:"This one catches everyone. One says there was a problem, but it does not block. The change still happens.",
+ q2:"Which number blocks?",a2:["0","1","2"],c2:2,
+ ok2:"Right. Two, and only two.",
+ no2:"Two. Zero means fine, one means a problem, two means stop."},
+
+{g:"Part 5 · Where the lock is listed",w:"JSON",
+ say:"A way of writing information so that a program can read it.",
+ more:[
+  ["Say it out loud","Jay-son. It is only a way of laying words out, nothing more."],
+  ["The shape","A label, then a colon, then the value. Curly brackets around the outside."],
+  ["In your factory","A printed form with labelled boxes, instead of a handwritten note. A machine can read the form. It cannot read handwriting."],
+  ["Real one","The slip handed to your hook looks like this: <code>{\"tool_name\": \"Edit\"}</code>. The label is tool_name. The value is Edit."]],
+ q:'In <code>{"tool_name": "Edit"}</code>, which part is the label?',
+ a:["<code>Edit</code>","<code>tool_name</code>"],c:1,
+ ok:"Yes. The label is on the left of the colon.",
+ no:"Left of the colon is the label. Right of it is the value.",
+ q2:"And which part is the value?",a2:["<code>tool_name</code>","<code>Edit</code>"],c2:1,
+ ok2:"Right. Right of the colon.",no2:"Right of the colon. That is Edit."},
+
+{g:"Part 5 · Where the lock is listed",w:"permissionDecision",
+ say:"A word your hook can write to say allow, deny, or ask.",
+ more:[
+  ["Another way","Instead of leaving the number two, your hook can write a proper little form saying deny. Both refuse. Both work."],
+  ["In your factory","The inspector writes one of three words on the card. PASS. FAIL. COME AND SEE ME FIRST."],
+  ["The three words","allow means let it happen. deny means stop it. ask means stop and ask the person first."],
+  ["Why you would use it","Because you can write the reason into the same form, neatly, instead of shouting it."]],
+ q:"So how many ways can a hook refuse?",a:["One","Two","Three"],c:1,
+ ok:"Yes. Leave the number two, or write deny. Two ways, same result.",
+ no:"Two ways. Leaving the number two is one. Writing deny is the other.",
+ q2:"Which of these is NOT one of the three words?",a2:["allow","deny","delete"],c2:2,
+ ok2:"Right. Allow, deny, ask. Nothing is deleted.",
+ no2:"The three are allow, deny and ask. Delete is not one of them."},
+
+{g:"Part 5 · Where the lock is listed",w:"settings.json",
+ say:"The file where you list your hooks, so that something knows to run them.",
+ more:[
+  ["Another way","It is a file, and it is written in JSON, which is why its name ends that way."],
+  ["In your factory","The list on the wall saying which sensor is fitted to which machine. A sensor that is not on the list is a sensor in a box on the shelf."],
+  ["Real one","Your repository has no such file. Not one. That is why you have no hooks."],
+  ["The catch","Writing the hook program is not enough. If it is not listed here, nothing ever calls it, and nothing tells you."]],
+ q:"You wrote a hook program. Will it run?",
+ a:["Yes, as soon as it is saved","No, not until it is listed in settings.json"],c:1,
+ ok:"Yes. A sensor still in its box does nothing.",
+ no:"No. Nothing knows it exists until it is on the list.",
+ q2:"Where do you say which event your hook listens for?",
+ a2:["Inside the hook program","In settings.json"],c2:1,
+ ok2:"Right. The program does the work. The list says when to call it.",
+ no2:"In settings.json. That is the list on the wall."},
+
+{g:"Part 5 · Where the lock is listed",w:"Merge",
+ say:"There is more than one settings file. For hooks, ALL of them run.",
+ more:[
+  ["Another way","One list lives with your project. Another lives with you, and follows you to every project. Both are read."],
+  ["In your factory","Two managers each fit a sensor to the same machine. Both sensors stay fitted. Either one can stop it."],
+  ["Why this is odd","For most settings, one file wins and the other is ignored. Hooks do not work that way. Hooks add up."],
+  ["What it means for you","If any hook says no, the answer is no. A second hook cannot undo the first one's refusal."]],
+ q:"Your project list and your personal list each name a hook for the same event. Which runs?",
+ a:["Only the project one","Only the personal one","Both"],c:2,
+ ok:"Yes. Both. Hooks add up, they do not replace each other.",
+ no:"Both. This is the odd one to remember. Most settings let one file win. Hooks all run.",
+ q2:"Can a second hook cancel the first one's refusal?",
+ a2:["Yes","No. One refusal is enough"],c2:1,
+ ok2:"Right. Any single no stops it.",no2:"No. One refusal is the end of it."},
+
+{g:"Part 6 · How strict the shift is",w:"Permission",
+ say:"Permission means being allowed. Before I do something risky, I normally stop and ask you first.",
+ more:[
+  ["Another way","Each time I am about to run a command, there is a check: is this allowed, or should I ask?"],
+  ["In your factory","A new worker checks with the foreman before touching the press. That check is the permission."],
+  ["Two lists","You can write a list of things always allowed, so I stop asking. And a list of things never allowed."],
+  ["Real one","You have a list of forty-five things always allowed. It lives on your own machine, not in your repository."]],
+ q:"What is a permission check?",
+ a:["A file","A moment where it is decided whether I may do something","A kind of command"],c:1,
+ ok:"Yes. A decision made before something is done.",
+ no:"It is not a thing. It is a decision made before acting.",
+ q2:"What does a list of allowed things do?",
+ a2:["Stops me asking you about those things","Deletes them"],c2:0,
+ ok2:"Right. It is there to save you being asked all day.",
+ no2:"It saves you being asked. Nothing is deleted."},
+
+{g:"Part 6 · How strict the shift is",w:"Permission mode",
+ say:"How strict the session is. There are several settings, and you pick one.",
+ more:[
+  ["Another way","One mode asks you about everything. One only asks about risky things. One asks about nothing at all."],
+  ["In your factory","Day shift with the foreman standing there. Or night shift with nobody watching. Same machines, very different evening."],
+  ["Real one","You chose the loosest one, so that work does not stop every two minutes to ask you."],
+  ["Why it matters next","Which mode you are in decides whether your two lists mean anything."]],
+ q:"What does a permission mode set?",
+ a:["How strict the session is about asking you","Which files exist","The colour of the screen"],c:0,
+ ok:"Yes. How often it stops to ask.",
+ no:"It sets how strict things are. Nothing about files or colours.",
+ q2:"Can you choose the mode?",a2:["Yes","No, it is fixed"],c2:0,
+ ok2:"Right. You chose one already.",no2:"You can. And you did."},
+
+{g:"Part 6 · How strict the shift is",w:"bypassPermissions",
+ pic:["hook.jpg","Three in the morning. Every sign is correct. Every sign is ignored. The paper rules are off."],
+ say:"The loosest mode. It stops asking you about anything. It also switches your two lists off.",
+ more:[
+  ["Break the word","Bypass means go around. Permissions means the asking. Go around the asking."],
+  ["The part that surprises everyone","Your allowed list and your never-allowed list both stop working in this mode. Written, saved, and completely ignored."],
+  ["In your factory","Night shift, no foreman. The paper rules on the wall mean nothing at three in the morning. The bolted-on sensors still fire."],
+  ["Real one","You run in this mode. So your forty-five entry list does nothing. But a hook would still stop a change. That is the whole reason this course starts with hooks."]],
+ q:"In this mode, does your never-allowed list still stop anything?",
+ a:["Yes","No"],c:1,
+ ok:"Correct, it does not. Bypass means the lists are gone around.",
+ no:"No. Bypass means gone around. Both lists are switched off.",
+ q2:"In this mode, do hooks still run?",
+ a2:["Yes, and a hook can still block","No, everything is switched off"],c2:0,
+ ok2:"Right. And that is exactly why a hook beats a list.",
+ no2:"Hooks still run. The paper rules are off, the bolted-on sensors are not."}
+];
+
+const stage=document.getElementById('stage'),next=document.getElementById('next'),
+      moreBtn=document.getElementById('more'),fill=document.getElementById('fill'),cnt=document.getElementById('cnt');
+let i=-1,shown=0,second=false,shaky=[];
+const T=W.length;
+
+function prog(){fill.style.width=Math.min(100,Math.max(0,i)/T*100)+'%';cnt.textContent=Math.max(0,i)+' / '+T+' words';}
+function hideMore(){moreBtn.style.display='none';}
+function showMore(){moreBtn.style.display='block';}
+
+function intro(){
+  hideMore();
+  stage.innerHTML=`<div class="set">Before anything else</div>
+   <div class="word">The words<small>Twenty-seven of them. One at a time.</small></div>
+   <div class="pic"><img src="cast.jpg" alt=""><div class="cap">Everything in this course happens in this room.</div></div>
+   <div class="blk"><div class="h">Why we start here</div>
+     <p>Every course you tried used words nobody had given you first.</p>
+     <p>I did it too. I said repo without ever telling you what one is.</p></div>
+   <div class="blk amberish"><div class="h">The promise</div>
+     <p>Nothing here assumes you know anything at all.</p>
+     <p>Every word gets a plain sentence, a picture from your own workshop, and a real example.</p>
+     <p>If it is still not clear, there is a button that explains it again, a different way. Press it as many times as you like.</p>
+     <p>Then one question, so we both know it landed.</p></div>`;
+  next.textContent='Give me the first word';next.disabled=false;
+  next.onclick=()=>{i=0;teach();};prog();window.scrollTo(0,0);
+}
+
+function teach(){
+  const w=W[i];second=false;shown=0;
+  const art = w.pic
+    ? `<div class="pic"><img src="${w.pic[0]}" alt=""><div class="cap">${w.pic[1]}</div></div>`
+    : `<div class="noart"><span>No picture for this word yet. It is on the list to be drawn.</span></div>`;
+  stage.innerHTML=`<div class="set">${w.g} · word ${i+1} of ${T}</div>
+    <div class="word">${w.w}</div>
+    <div class="plain">${w.say}</div>
+    ${art}
+    <div id="layers"></div>`;
+  showMore();
+  moreBtn.textContent='Explain more';moreBtn.disabled=false;
+  moreBtn.onclick=()=>{
+    const w=W[i];if(shown>=w.more.length)return;
+    const [h,p]=w.more[shown];
+    const warn=/NOT|trap|surprises|catch/i.test(h);
+    document.getElementById('layers').insertAdjacentHTML('beforeend',
+      `<div class="blk ${warn?'warn':''}" style="margin-top:14px"><div class="h">${h}</div><p>${p}</p></div>`);
+    shown++;
+    if(shown>=w.more.length){moreBtn.textContent='That is everything';moreBtn.disabled=true;}
+    window.scrollTo(0,document.body.scrollHeight);
+  };
+  next.textContent='I follow. Ask me';next.disabled=false;next.onclick=check;
+  prog();window.scrollTo(0,0);
+}
+
+function check(){
+  hideMore();
+  const w=W[i],q=second?w.q2:w.q,opts=second?w.a2:w.a,c=second?w.c2:w.c;
+  stage.innerHTML=`<div class="qh">${w.w} · check${second?' — second try':''}</div>
+    <div class="q">${q}</div>
+    <div class="opts">${opts.map((t,j)=>`<button class="opt" data-j="${j}"><span class="n">${'ABC'[j]}</span><span>${t}</span></button>`).join('')}</div>
+    <div id="fb"></div>`;
+  next.disabled=true;next.textContent='Pick an answer';window.scrollTo(0,0);
+  stage.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{
+    if(b.disabled)return;
+    const j=+b.dataset.j,ok=j===c;
+    stage.querySelectorAll('.opt').forEach(x=>{x.disabled=true;
+      if(+x.dataset.j===c)x.classList.add('right');
+      else if(x===b)x.classList.add('wrong');else x.classList.add('dead');});
+    const fb=document.getElementById('fb');
+    fb.className='fb'+(ok?'':' no');
+    fb.innerHTML=ok?('<b>Yes.</b> '+(second?w.ok2:w.ok)):('<b>Not that one.</b> '+(second?w.no2:w.no));
+    const last=i+1>=T;
+    if(!ok&&!second){
+      if(!shaky.includes(w.w))shaky.push(w.w);
+      next.textContent='Show me another way';next.onclick=()=>{second=true;check();};
+    }else{
+      next.textContent=last?'See where I stand':'Next word';next.onclick=()=>{i++;i<T?teach():done();};
+    }
+    next.disabled=false;
+    try{localStorage.setItem('words01',JSON.stringify({i,shaky}))}catch(e){}
+    window.scrollTo(0,document.body.scrollHeight);
+  }));
+}
+
+function done(){
+  hideMore();fill.style.width='100%';cnt.textContent=T+' / '+T+' words';
+  const solid=W.map(x=>x.w).filter(x=>!shaky.includes(x));
+  stage.innerHTML=`<div class="set">Where you stand</div>
+    <div class="big">${solid.length}<span style="font-size:.34em;color:var(--dim)">/${T}</span></div>
+    <div class="plain">right the first time</div>
+    <div class="blk"><div class="h">Solid</div><div class="chips">${solid.map(x=>`<span class="chip">${x}</span>`).join('')||'<span class="chip shaky">none yet</span>'}</div></div>
+    ${shaky.length?`<div class="blk amberish"><div class="h">Needed a second look</div>
+      <div class="chips">${shaky.map(x=>`<span class="chip shaky">${x}</span>`).join('')}</div>
+      <p>These open the next session. Not as punishment. Just so they stay.</p></div>`:''}
+    <div class="blk"><div class="h">What this bought you</div>
+      <p>You now own every word the first lesson uses.</p>
+      <p>Nothing in it will be a word you have not been given.</p></div>`;
+  next.textContent='Run it again';next.disabled=false;
+  next.onclick=()=>{i=-1;shaky=[];intro();};
+  window.scrollTo(0,0);
+}
+
+/* boot happens in the live layer below, once saved progress is known */
+</script>
+
+<style>
+  .live{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:20px 22px;
+        display:flex;flex-direction:column;gap:12px;animation:rise .35s ease-out both;
+        box-shadow:0 1px 2px rgba(40,32,20,.05)}
+  .live.note{background:var(--soft);border-color:rgba(23,166,115,.42)}
+  .live .h{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--deep)}
+  .live p{margin:0;font-size:21px;line-height:1.6;color:var(--ink);text-wrap:pretty;white-space:pre-wrap}
+  .live textarea{width:100%;min-height:96px;border:2px solid var(--line);border-radius:12px;padding:14px 16px;
+       font:inherit;font-size:20px;line-height:1.5;color:var(--ink);background:#FFF;resize:vertical}
+  .live textarea:focus{outline:none;border-color:var(--deep)}
+  .live .act{min-height:58px;border:0;border-radius:12px;background:var(--deep);color:#F8F4EC;
+       font:inherit;font-size:18px;font-weight:800;cursor:pointer}
+  .live .act.quiet{background:var(--card);border:2px solid var(--deep);color:var(--deep)}
+  .live .act:disabled{background:transparent;border:2px solid var(--line);color:var(--dim);cursor:default}
+  .live .ans{font-size:21px;line-height:1.6;border-left:5px solid var(--jade);padding:4px 0 4px 16px;
+       white-space:pre-wrap;text-wrap:pretty}
+  .live .small{font-size:16px;color:var(--dim);line-height:1.5}
+  .saved{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--dim);
+         opacity:0;transition:opacity .3s}
+  .saved.on{opacity:1}
+  .saved b{width:9px;height:9px;border-radius:99px;background:var(--jade);display:inline-block}
+</style>
+<script>
+(function(){
+  const stage=document.getElementById('stage'), nextBtn=document.getElementById('next');
+  const KEY='alrassai-words-v2';
+  let db=null, ask=null;
+  const el=h=>{const d=document.createElement('div');d.innerHTML=h.trim();return d.firstElementChild};
+  const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-');
+  const quiet=p=>{try{return Promise.resolve(p).catch(()=>null)}catch(e){return Promise.resolve(null)}};
+
+  /* ---------- remembering ---------- */
+  function localGet(){
+    try{ const cur=localStorage.getItem(KEY); if(cur) return JSON.parse(cur);
+         const old=localStorage.getItem('words01'); if(old) return JSON.parse(old); }catch(e){}
+    return null; }
+  function localPut(st){ try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){} }
+
+  function snapshot(){
+    const reached=Math.max(0,i);          /* words fully answered = those before the one on screen */
+    const solid=W.slice(0,reached).map(x=>x.w).filter(x=>!shaky.includes(x));
+    return {at:new Date().toISOString(), word:reached, total:T,
+            shaky:[...shaky], solid, done:reached>=T-1};
+  }
+  let saveTimer=null;
+  function save(){
+    const st=snapshot(); localPut(st); flash();
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>{ if(db) quiet(db.doc('progress/words').set(st)); },600);
+  }
+  function flash(){
+    let f=document.getElementById('savedFlag');
+    if(!f){ f=el('<div class="saved" id="savedFlag"><b></b><span>Saved</span></div>'); stage.appendChild(f); }
+    f.classList.add('on'); clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove('on'),1600);
+  }
+  function normalise(x){
+    if(!x||typeof x!=='object') return null;
+    /* older versions of this page used different field names */
+    const word = typeof x.word==='number' ? x.word
+               : typeof x.reached==='number' ? Math.max(0,x.reached-1)
+               : typeof x.i==='number' ? x.i : null;
+    if(word===null) return null;
+    return {at:x.at||x.updatedAt||new Date(0).toISOString(), word,
+            total:x.total||T, shaky:Array.isArray(x.shaky)?x.shaky:[],
+            solid:Array.isArray(x.solid)?x.solid:[], done:!!x.done};
+  }
+  async function loadState(){
+    const localSt=localGet();
+    let remote=null;
+    if(db){ const s=await quiet(db.doc('progress/words').get());
+            if(s&&s.exists) remote=normalise(s.data()); }
+    const mine=normalise(localSt);
+    if(!mine) return remote;
+    if(!remote) return mine;
+    return (new Date(remote.at) > new Date(mine.at)) ? remote : mine;
+  }
+
+  /* ---------- the screen you land on ---------- */
+  function welcome(st){
+    const n=(st.word|0)+1, left=T-(st.word|0);
+    stage.innerHTML='';
+    stage.appendChild(el(`<div class="set">Welcome back</div>`));
+    stage.appendChild(el(`<div class="word">Word ${n}<small>of ${T}. You stopped here.</small></div>`));
+    stage.appendChild(el(`<div class="plain">${W[st.word|0].w} — ${W[st.word|0].say}</div>`));
+    const solid=(st.solid||[]).length, sh=(st.shaky||[]).length;
+    const b=el(`<div class="blk"><div class="h">Where you are</div>
+      <div class="chips"></div></div>`);
+    b.querySelector('.chips').innerHTML =
+      `<span class="chip">${solid} right first time</span>` +
+      (sh?`<span class="chip shaky">${sh} needed a second look</span>`:'') +
+      `<span class="chip">${left} still to come</span>`;
+    stage.appendChild(b);
+    if(sh) stage.appendChild(el(`<div class="blk amberish"><div class="h">To come back to</div>
+      <div class="chips">${st.shaky.map(x=>`<span class="chip shaky">${x}</span>`).join('')}</div></div>`));
+    statusCard(st);
+    paintNote();
+
+    document.getElementById('more').style.display='none';
+    nextBtn.textContent='Carry on from word '+n; nextBtn.disabled=false;
+    nextBtn.onclick=()=>{ i=st.word|0; shaky=(st.shaky||[]).slice(); teach(); };
+
+    const again=el('<button class="btn ghost" style="margin-top:2px">Start from the beginning</button>');
+    again.onclick=()=>{ if(!confirm('Clear your progress and start at word one?'))return;
+      try{localStorage.removeItem(KEY)}catch(e){}
+      if(db) quiet(db.doc('progress/words').delete());
+      i=-1; shaky=[]; intro(); };
+    document.getElementById('foot').insertBefore(again,nextBtn);
+  }
+
+  /* ---------- can it remember me? say so out loud ---------- */
+  function statusCard(st){
+    const done=st?((st.word|0)):0;
+    const card=el('<div class="blk"><div class="h"></div><p></p></div>');
+    const h=card.querySelector('.h'), p=card.querySelector('p');
+    if(db){
+      h.textContent='Your place is kept';
+      p.textContent = done>0
+        ? 'This page remembers you. You have '+done+' word'+(done===1?'':'s')+' behind you.'
+        : 'This page remembers you. Nothing is saved yet, because you have not answered a word yet. Answer the first one and it starts keeping your place, on this phone and on any other.';
+    }else{
+      card.className='blk amberish';
+      h.textContent='This copy will not remember you';
+      p.textContent='You are not on the live link, so nothing can be saved. Everything else still works.';
+    }
+    stage.appendChild(card);
+  }
+
+  /* ---------- a note left for him ---------- */
+  async function paintNote(){
+    if(!db) return;
+    const s=await quiet(db.doc('notes/latest').get());
+    if(!s||!s.exists) return;
+    const d=s.data()||{}; if(!d.text) return;
+    const n=el('<div class="live note"><div class="h">A note from your trainer</div><p></p><div class="small"></div></div>');
+    n.querySelector('p').textContent=d.text;
+    n.querySelector('.small').textContent=d.at?('Left '+new Date(d.at).toLocaleString()):'';
+    stage.appendChild(n);
+  }
+
+  /* ---------- ask about this word ---------- */
+  function askPanel(){
+    const w=W[i]; if(!w) return;
+    const box=el(`<div class="live"><div class="h">Still not clear?</div>
+      <textarea placeholder="Ask anything about this word, in your own words."></textarea>
+      <button class="act">Ask about ${w.w}</button><div class="out"></div></div>`);
+    const ta=box.querySelector('textarea'),btn=box.querySelector('.act'),out=box.querySelector('.out');
+    if(!ask){ btn.disabled=true; btn.textContent='Not available on this copy'; ta.disabled=true;
+      out.innerHTML='<div class="small">The ask box only works on the live link.</div>'; }
+    btn.addEventListener('click',async()=>{
+      const q=ta.value.trim(); if(!q||!ask) return;
+      btn.disabled=true; btn.textContent='Thinking…';
+      const a=el('<div class="ans">…</div>'); out.innerHTML=''; out.appendChild(a);
+      const ctx=[w.say,...w.more.map(([h,p])=>h+': '+p)].join('\n').replace(/<[^>]+>/g,'');
+      const taught=W.slice(0,i+1).map(x=>x.w).join(', ');
+      try{
+        const r=await ask(
+`You are Nael's patient trainer. He is a finance manager in Damascus who builds software but was never taught the vocabulary. Explain as if he is five. Assume he knows nothing. Short sentences. Use his steel factory for pictures.
+
+HARD RULE: only these words may be used as known: ${taught}. Explain any other technical term in the same breath, in plain words.
+
+He is on the word "${w.w}". The page already told him:
+${ctx}
+
+His question: ${q}
+
+Answer in under 120 words. Do not repeat what the page said — say it another way.`,
+          {modelTier:'quick',onText:({text})=>{a.textContent=text}});
+        a.textContent=r.text;
+        if(db) quiet(db.doc('questions/'+stamp()).set({
+          at:new Date().toISOString(),word:w.w,question:q,answeredInPage:true}));
+      }catch(e){ a.textContent='That did not go through. Try again, or leave it at the end.'; }
+      btn.disabled=false; btn.textContent='Ask again';
+    });
+    stage.appendChild(box);
+  }
+
+  /* ---------- mailbox ---------- */
+  function mailbox(){
+    const box=el(`<div class="live"><div class="h">Leave this for your trainer</div>
+      <div class="small">He reads these before the next session.</div>
+      <textarea placeholder="What is still unclear? Which word should be rewritten?"></textarea>
+      <button class="act quiet">Leave it</button><div class="out"></div></div>`);
+    const ta=box.querySelector('textarea'),btn=box.querySelector('.act'),out=box.querySelector('.out');
+    if(!db){ btn.disabled=true; btn.textContent='Not available on this copy'; ta.disabled=true; }
+    btn.addEventListener('click',async()=>{
+      const t=ta.value.trim(); if(!t||!db) return;
+      btn.disabled=true; btn.textContent='Sending…';
+      await quiet(db.doc('questions/'+stamp()).set({
+        at:new Date().toISOString(),word:'(end of the list)',question:t,answeredInPage:false}));
+      out.innerHTML='<div class="ans">Left for him.</div>'; ta.value='';
+      btn.textContent='Leave another'; btn.disabled=false;
+    });
+    stage.appendChild(box);
+  }
+
+  /* ---------- wire into the screens ---------- */
+  const _teach=teach,_done=done;
+  teach=function(){ _teach(); askPanel(); save(); };
+  done =function(){ _done(); mailbox(); save(); };
+  stage.addEventListener('click',e=>{ if(e.target.closest('.opt')) setTimeout(save,60); });
+  addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
+
+  /* ---------- boot ---------- */
+  (async()=>{
+    try{ if(window.claude&&claude.use){
+      db =await claude.use('db').catch(()=>null);
+      ask=await claude.use('sample').catch(()=>null);
+    }}catch(e){}
+    if(db) quiet(db.doc('visits/'+stamp()).set({at:new Date().toISOString(),where:'words'}));
+    let st=null;
+    try{ st=await loadState(); }catch(e){}
+    if(st && typeof st.word==='number' && st.word>=0 && st.word<T && !st.done) welcome(st);
+    else { intro(); statusCard(null); paintNote(); }
+  })().catch(()=>{ try{intro()}catch(e){} });
+})();
+</script>

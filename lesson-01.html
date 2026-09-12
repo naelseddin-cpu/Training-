@@ -1,0 +1,379 @@
+<title>Locks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Almarai:wght@400;700&display=swap">
+<style>
+  :root{
+    --bg:#0C0A06; --card:#17130C; --ink:#F4EFE6; --dim:#A79B85;
+    --jade:#2FD9A3; --deep:#0E5C43; --amber:#FDEEC9; --red:#FF6B6B;
+    --line:rgba(244,239,230,0.14); --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--ink);font-family:Inter,Almarai,system-ui,sans-serif;overflow:hidden}
+
+  #bar{position:fixed;top:0;left:0;right:0;height:46px;z-index:40;display:flex;align-items:center;gap:12px;padding:0 16px;background:linear-gradient(to bottom,rgba(12,10,6,.96),rgba(12,10,6,0));pointer-events:none}
+  #track{flex:1;height:4px;border-radius:2px;background:rgba(244,239,230,.16);overflow:hidden}
+  #fill{height:100%;width:0;background:var(--jade);transition:width .35s cubic-bezier(.4,0,.2,1)}
+  #xp{font-size:13px;font-weight:800;color:var(--jade);font-variant-numeric:tabular-nums;min-width:58px;text-align:right}
+
+  #feed{height:100dvh;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none}
+  #feed::-webkit-scrollbar{display:none}
+  .card{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;display:flex;flex-direction:column;justify-content:flex-end;padding:62px 20px 28px;overflow:hidden}
+  .mid{justify-content:center}
+
+  .shot{position:absolute;inset:0}
+  .shot img{width:100%;height:100%;object-fit:cover;display:block}
+  .shot::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(12,10,6,.78) 0%,rgba(12,10,6,.04) 30%,rgba(12,10,6,.12) 44%,rgba(12,10,6,.95) 88%)}
+  .shot.soft::after{background:linear-gradient(to bottom,rgba(12,10,6,.55) 0%,rgba(12,10,6,.6) 40%,rgba(12,10,6,.93) 100%)}
+  .body{position:relative;z-index:2;display:flex;flex-direction:column;gap:14px}
+
+  .kick{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--jade)}
+  .kick.amber{color:var(--amber)}
+  h1{font-size:clamp(34px,10vw,56px);line-height:1;font-weight:900;letter-spacing:-.035em;margin:0}
+  h2{font-size:clamp(24px,6.4vw,34px);line-height:1.1;font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:pretty}
+  h3{font-size:20px;line-height:1.2;font-weight:800;margin:0}
+  p{font-size:16px;line-height:1.45;color:var(--dim);margin:0;text-wrap:pretty}
+  .lead{color:var(--ink);font-size:19px;font-weight:600}
+  .tiny{font-size:13px;color:var(--dim)}
+
+  .pill{display:inline-flex;align-self:flex-start;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;border-radius:99px;background:rgba(47,217,163,.15);color:var(--jade)}
+  .cue{display:flex;justify-content:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding-top:8px;opacity:.7;animation:bob 1.9s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes pop{0%{transform:scale(.9);opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+
+  /* drama */
+  .beat{opacity:0;animation:rise .45s ease-out forwards}
+  .beat.hid{display:none}
+  .beat h2{margin-bottom:2px}
+
+  /* presentation */
+  .stat{font-size:clamp(70px,22vw,120px);font-weight:900;line-height:.88;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+  .stat.red{color:var(--red)} .stat.jade{color:var(--jade)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:end}
+
+  /* taps */
+  .tap{display:flex;align-items:center;gap:11px;min-height:54px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;font-size:15px;font-weight:600;text-align:left;width:100%;cursor:pointer;transition:.16s}
+  .tap:active{transform:scale(.985)}
+  .tap .n{font-size:11px;font-weight:900;color:var(--jade);min-width:15px}
+  .tap.wrong{border-color:var(--red);background:rgba(255,107,107,.13);color:var(--red)}
+  .tap.right{border-color:var(--jade);background:rgba(47,217,163,.15);color:var(--jade)}
+  .tap.dead{opacity:.4}
+  .stack{display:flex;flex-direction:column;gap:9px}
+  .reveal{display:none;border-left:3px solid var(--jade);padding:3px 0 3px 13px;font-size:16px;line-height:1.42}
+  .reveal.on{display:block;animation:rise .3s ease-out}
+
+  /* carousel */
+  .rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px}
+  .rail::-webkit-scrollbar{display:none}
+  .slide{scroll-snap-align:center;flex:0 0 78%;max-width:300px;border:1px solid var(--line);border-radius:16px;background:var(--card);padding:20px;display:flex;flex-direction:column;gap:10px;min-height:230px}
+  .slide .no{font-size:11px;font-weight:900;letter-spacing:.14em;color:var(--jade)}
+  .slide .ttl{font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .slide .txt{font-size:15px;line-height:1.4;color:var(--dim)}
+  .dots{display:flex;gap:6px;justify-content:center}
+  .dot{width:6px;height:6px;border-radius:99px;background:rgba(244,239,230,.24);transition:.2s}
+  .dot.on{background:var(--jade);width:18px}
+
+  /* simulator */
+  .sim{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:16px;display:flex;flex-direction:column;gap:13px}
+  .fieldrow{display:flex;flex-direction:column;gap:7px}
+  .lbl{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .opt{flex:1;min-width:78px;min-height:44px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--dim);font:inherit;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--mono)}
+  .opt.on{background:rgba(47,217,163,.16);border-color:var(--jade);color:var(--jade)}
+  .run{min-height:50px;border:0;border-radius:11px;background:var(--jade);color:#06281E;font:inherit;font-size:15px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+  .run:active{transform:scale(.985)}
+  .out{font-family:var(--mono);font-size:13px;line-height:1.5;border-radius:10px;padding:13px;background:rgba(0,0,0,.4);border:1px solid var(--line);color:var(--dim);min-height:78px;white-space:pre-wrap;word-break:break-word}
+  .out.block{border-color:var(--red);color:var(--red);animation:pop .28s ease-out}
+  .out.allow{border-color:var(--jade);color:var(--jade);animation:pop .28s ease-out}
+
+  /* order puzzle */
+  .slot{min-height:52px;border:1px dashed var(--line);border-radius:11px;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:14px;color:var(--dim);font-weight:600}
+  .slot .idx{font-size:11px;font-weight:900;color:var(--jade);min-width:15px}
+  .slot.filled{border-style:solid;background:var(--card);color:var(--ink)}
+  .slot.bad{border-color:var(--red);color:var(--red)}
+  .slot.good{border-color:var(--jade)}
+
+  .term{background:var(--deep);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:11px}
+  .term p{color:rgba(245,239,226,.88);font-size:15px}
+  code{font-family:var(--mono);font-size:14px;color:#ABEDD7;background:rgba(0,0,0,.3);padding:2px 6px;border-radius:5px}
+  .exam{border:1px dashed rgba(253,238,201,.45);border-radius:12px;padding:13px 15px;background:rgba(253,238,201,.06)}
+  .exam p{color:rgba(253,238,201,.9);font-size:14px}
+
+  .q{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .why{display:none;font-size:14px;line-height:1.42;color:var(--dim);border-top:1px solid var(--line);padding-top:11px}
+  .why.on{display:block;animation:rise .3s ease-out}
+  .why b{color:var(--ink)}
+</style>
+
+<div id="bar"><div id="track"><div id="fill"></div></div><div id="xp">0 XP</div></div>
+
+<div id="feed">
+
+  <!-- 1 · ART -->
+  <section class="card">
+    <div class="shot"><img src="cast.jpg" alt=""></div>
+    <div class="body">
+      <div class="pill">Lesson 1 of 15</div>
+      <h1>Locks</h1>
+      <p class="lead">Ten minutes. Then you build one.</p>
+      <div class="cue">Scroll ↓</div>
+    </div>
+  </section>
+
+  <!-- 2 · DRAMA -->
+  <section class="card" id="drama">
+    <div class="shot soft"><img src="hook.jpg" alt=""></div>
+    <div class="body">
+      <div class="kick">31 August 2026 · 03:00</div>
+      <div class="beat hid"><h2>Six doors into your ledger.</h2></div>
+      <div class="beat hid"><p class="lead">A sign taped on every one. Every sign correct.</p></div>
+      <div class="beat hid"><p class="lead">Every sign was read.</p></div>
+      <div class="beat hid"><h2 style="color:var(--red)">All six were walked through.</h2></div>
+      <div class="cue" id="dramaCue">Tap to continue</div>
+    </div>
+  </section>
+
+  <!-- 3 · PRESENTATION -->
+  <section class="card mid">
+    <div class="body">
+      <div class="kick">From your own master file</div>
+      <div class="row2">
+        <div><div class="stat">6</div><p class="tiny">ways in</p></div>
+        <div><div class="stat red">0</div><p class="tiny">locks</p></div>
+      </div>
+      <p class="lead" style="padding-top:10px">Rule R6 says this cost you a night.</p>
+      <p>“A rule re-implemented by hand in each screen WILL leak.”</p>
+      <div class="cue">Scroll ↓</div>
+    </div>
+  </section>
+
+  <!-- 4 · PUZZLE -->
+  <section class="card mid">
+    <div class="body">
+      <div class="kick">Tap one</div>
+      <h2>You are asleep. An agent is editing your master file.</h2>
+      <p>Which guard physically stops it?</p>
+      <div class="stack" id="guards">
+        <button class="tap"><span class="n">1</span>A rule in CLAUDE.md</button>
+        <button class="tap"><span class="n">2</span>A rule in ALRASSAI.md</button>
+        <button class="tap"><span class="n">3</span>The release gate</button>
+        <button class="tap"><span class="n">4</span>The security reviewer</button>
+        <button class="tap"><span class="n">5</span>Your attention</button>
+      </div>
+      <div class="reveal" id="guardsWhy"><b>None.</b> All five are signs. A sign asks. Nothing here refuses.</div>
+    </div>
+  </section>
+
+  <!-- 5 · ART -->
+  <section class="card">
+    <div class="shot"><img src="idea.jpg" alt=""></div>
+    <div class="body">
+      <div class="kick">The idea</div>
+      <h2>A sign asks. A padlock refuses.</h2>
+      <p class="lead">The lever still works. The hand cannot reach it.</p>
+      <div class="cue">Swipe the cards ↓</div>
+    </div>
+  </section>
+
+  <!-- 6 · SLIDESHOW -->
+  <section class="card mid">
+    <div class="body">
+      <div class="kick">Swipe · five parts</div>
+      <h3>Every part of that padlock is a part of what you build.</h3>
+      <div class="rail" id="rail">
+        <div class="slide"><div class="no">01</div><div class="ttl">The lever</div><div class="txt">The tool that changes the file.</div><div class="txt" style="color:var(--jade)">Edit · Write</div></div>
+        <div class="slide"><div class="no">02</div><div class="ttl">The hasp</div><div class="txt">The instant before the tool runs. The only moment your lock can speak.</div><div class="txt" style="color:var(--jade)">PreToolUse</div></div>
+        <div class="slide"><div class="no">03</div><div class="ttl">The padlock</div><div class="txt">Your script. It reads what is about to happen. It says yes or no.</div><div class="txt" style="color:var(--jade)">the hook command</div></div>
+        <div class="slide"><div class="no">04</div><div class="ttl">The tag</div><div class="txt">The reason, in words. The agent reads it and changes course.</div><div class="txt" style="color:var(--jade)">stderr · reason</div></div>
+        <div class="slide"><div class="no">05</div><div class="ttl">The key</div><div class="txt">Whatever decides the lock is on. And who may take it off.</div><div class="txt" style="color:var(--jade)">your condition</div></div>
+      </div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </section>
+
+  <!-- 7 · GAME -->
+  <section class="card mid">
+    <div class="body">
+      <div class="kick">Play with it</div>
+      <h3>Your padlock, before you write it.</h3>
+      <div class="sim">
+        <div class="fieldrow"><div class="lbl">The gate</div><div class="seg" id="segGate">
+          <button class="opt on" data-v="1">RUNNING</button><button class="opt" data-v="0">idle</button></div></div>
+        <div class="fieldrow"><div class="lbl">Tool</div><div class="seg" id="segTool">
+          <button class="opt on" data-v="Edit">Edit</button><button class="opt" data-v="Write">Write</button><button class="opt" data-v="Bash">Bash</button></div></div>
+        <div class="fieldrow"><div class="lbl">Target</div><div class="seg" id="segFile">
+          <button class="opt on" data-v="ALRASSAI.md">ALRASSAI.md</button><button class="opt" data-v="erp/core/gate.py">gate.py</button></div></div>
+        <button class="run" id="run">Run the hook</button>
+        <div class="out" id="out">waiting…</div>
+      </div>
+      <p class="tiny">Find the two ways to make it allow. <span id="found" style="color:var(--jade);font-weight:800">0/2 found</span></p>
+    </div>
+  </section>
+
+  <!-- 8 · PRESENTATION -->
+  <section class="card mid">
+    <div class="body">
+      <div class="kick">Now the exam's words</div>
+      <div class="term">
+        <h2>PreToolUse hook</h2>
+        <p>Runs before a tool runs. It can refuse.</p>
+        <p>Refuses with <code>exit 2</code>, or JSON <code>permissionDecision: "deny"</code>.</p>
+        <p>A <code>matcher</code> picks which tools it guards.</p>
+      </div>
+      <div class="exam">
+        <div class="kick amber">On the real exam</div>
+        <p>No padlocks. They say hook event, matcher, exit code, permission decision. The same five parts.</p>
+      </div>
+      <div class="cue">Puzzle ↓</div>
+    </div>
+  </section>
+
+  <!-- 9 · PUZZLE -->
+  <section class="card mid">
+    <div class="body">
+      <div class="kick">Tap in order</div>
+      <h3>What happens, and when?</h3>
+      <div class="stack" id="slots"></div>
+      <div class="stack" id="chips" style="padding-top:4px"></div>
+      <div class="reveal" id="orderWhy"><b>That is the whole mechanism.</b> The hook sits between the decision and the action. Nowhere else.</div>
+    </div>
+  </section>
+
+  <div id="quiz"></div>
+
+  <!-- RESULT -->
+  <section class="card mid" id="end">
+    <div class="body">
+      <div class="kick">Result</div>
+      <div class="stat jade" id="score">0/5</div>
+      <h2 id="verdict">&nbsp;</h2>
+      <p id="advice">&nbsp;</p>
+      <div class="exam"><div class="kick amber">Next, in your repo</div>
+        <p>You write it. It refuses an edit to ALRASSAI.md while the gate runs. I run the probe and show you the refusal.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+let xp=0,done=0,correct=0,answered=0;
+const QS=[
+ {q:"Your hook exits with code 1 and prints to stderr. What happens to the Edit?",
+  a:["Blocked, and Claude reads it","It runs. A non-blocking error","Blocked silently","Claude asks the user"],c:1,
+  why:{0:"Tempting. stderr does reach Claude, but only on exit 2.",1:"Right. Only exit 2 blocks. Other non-zero codes are just errors.",2:"No. Nothing is blocked and nothing is silent.",3:"No. Hooks never fall back to a prompt."}},
+ {q:"Project settings hook on Edit|Write. User settings hook on Edit. An Edit arrives.",
+  a:["Only the project one","Only the user one","Both. Hooks merge","Neither. Config error"],c:2,
+  why:{0:"Tempting. Most settings keys do override. Hooks are the exception.",1:"No.",2:"Right. Hooks from every level merge and all run.",3:"No. Two hooks on one event is normal."}},
+ {q:"bypassPermissions is on. A deny rule lists the file. Your hook also denies it.",
+  a:["The deny rule","The hook only","Neither. Hooks are skipped too","Both"],c:1,
+  why:{0:"Tempting, and true in every other mode.",1:"Right. bypassPermissions kills allow and deny lists. Hooks still fire and still block.",2:"No. Hooks are not skipped. That is why the hook matters.",3:"No. Only one is alive here."}},
+ {q:"Which matcher fires for Edit and Write but not Bash?",
+  a:['"edit|write"','"Edit|Write"','"*"','"tool_input.file_path"'],c:1,
+  why:{0:"Tempting if you assume it ignores case. It does not.",1:"Right. Regex on the tool name, case-sensitive.",2:"No. That catches Bash too.",3:"No. The matcher tests the tool name."}},
+ {q:"Refuse with a reason, but exit 0. Which stdout does PreToolUse honour?",
+  a:['{"decision":"block"}','hookSpecificOutput · permissionDecision:"deny"','{"permission":"deny"}',"Any non-empty stdout"],c:1,
+  why:{0:"Tempting. That shape is real, but it belongs to the Stop hook.",1:"Right. PreToolUse reads hookSpecificOutput.permissionDecision.",2:"No. Invented key.",3:"No. Unrecognised stdout is ignored and the tool runs."}}
+];
+const TOTAL=1+1+5+2+QS.length;
+const fill=document.getElementById('fill'),xpEl=document.getElementById('xp');
+const bump=n=>{xp+=n;xpEl.textContent=xp+' XP'};
+const step=()=>{done++;fill.style.width=Math.min(100,done/TOTAL*100)+'%'};
+
+/* drama */
+(()=>{const c=document.getElementById('drama'),b=[...c.querySelectorAll('.beat')],cue=document.getElementById('dramaCue');
+ let i=0; const next=()=>{ if(i>=b.length){return;} b[i].classList.remove('hid'); i++;
+   if(i===b.length){cue.textContent='Scroll ↓';bump(10);step();} };
+ next(); c.addEventListener('click',next);})();
+
+/* guards */
+document.querySelectorAll('#guards .tap').forEach(btn=>btn.addEventListener('click',()=>{
+  if(btn.disabled)return;
+  document.querySelectorAll('#guards .tap').forEach(x=>{x.disabled=true;x.classList.add('dead')});
+  btn.classList.remove('dead');btn.classList.add('wrong');
+  document.getElementById('guardsWhy').classList.add('on');bump(10);step();
+}));
+
+/* carousel dots */
+(()=>{const r=document.getElementById('rail'),d=document.getElementById('dots');
+ const s=[...r.children]; s.forEach(()=>d.insertAdjacentHTML('beforeend','<div class="dot"></div>'));
+ const dots=[...d.children]; const seen=new Set();
+ const upd=()=>{const i=Math.round(r.scrollLeft/(r.scrollWidth/s.length));
+   dots.forEach((x,j)=>x.classList.toggle('on',j===i));
+   if(!seen.has(i)){seen.add(i);bump(5);step();}};
+ r.addEventListener('scroll',()=>{clearTimeout(r._t);r._t=setTimeout(upd,90)});upd();})();
+
+/* simulator */
+(()=>{
+ const pick=(id)=>{const w=document.getElementById(id);
+   w.addEventListener('click',e=>{const b=e.target.closest('.opt');if(!b)return;
+     [...w.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');});
+   return ()=>w.querySelector('.opt.on').dataset.v;};
+ const gate=pick('segGate'),tool=pick('segTool'),file=pick('segFile');
+ const out=document.getElementById('out'),found=document.getElementById('found');
+ const hits=new Set(); let scored=false;
+ document.getElementById('run').addEventListener('click',()=>{
+   const g=gate()==='1', t=tool(), f=file();
+   const guarded=(t==='Edit'||t==='Write'), master=(f==='ALRASSAI.md');
+   out.className='out';
+   if(g&&guarded&&master){
+     out.classList.add('block');
+     out.textContent='$ hook '+t+' '+f+'\nexit 2\nstderr: ALRASSAI.md is locked while the\nrelease gate is running.\n\n→ BLOCKED';
+   }else{
+     out.classList.add('allow');
+     const why = !g ? 'gate not running' : !guarded ? 'matcher does not cover '+t : 'not a master file';
+     out.textContent='$ hook '+t+' '+f+'\nexit 0  ('+why+')\n\n→ ALLOWED';
+     if(!g)hits.add('gate'); else if(!guarded)hits.add('tool'); else hits.add('file');
+     const n=Math.min(2,hits.size); found.textContent=n+'/2 found';
+     if(n>=2&&!scored){scored=true;bump(25);step();found.textContent='2/2 — both ways found';}
+   }
+ });})();
+
+/* order puzzle */
+(()=>{
+ const ORDER=['Claude decides to use Edit','The PreToolUse hook runs','The hook answers allow or deny','Edit runs, or is blocked'];
+ const slots=document.getElementById('slots'),chips=document.getElementById('chips');
+ ORDER.forEach((_,i)=>slots.insertAdjacentHTML('beforeend',`<div class="slot"><span class="idx">${i+1}</span><span class="t">—</span></div>`));
+ const shuffled=[...ORDER].sort(()=>Math.random()-.5);
+ shuffled.forEach(t=>chips.insertAdjacentHTML('beforeend',`<button class="tap"><span class="n">+</span>${t}</button>`));
+ let n=0;
+ chips.addEventListener('click',e=>{const b=e.target.closest('.tap');if(!b||b.disabled)return;
+   const label=b.textContent.replace(/^\+/,'').trim();
+   const slot=slots.children[n]; slot.classList.add('filled');
+   slot.querySelector('.t').textContent=label;
+   const ok=label===ORDER[n]; slot.classList.add(ok?'good':'bad');
+   b.disabled=true;b.classList.add('dead'); n++;
+   if(n===ORDER.length){
+     const all=[...slots.children].every(s=>s.classList.contains('good'));
+     document.getElementById('orderWhy').classList.add('on');
+     bump(all?25:10); step();
+   }});
+})();
+
+/* quiz */
+const quiz=document.getElementById('quiz');
+QS.forEach((it,i)=>{
+ const s=document.createElement('section'); s.className='card mid';
+ s.innerHTML=`<div class="body"><div class="q">Question ${i+1} of ${QS.length}</div>
+   <h3>${it.q}</h3><div class="stack">${it.a.map((t,j)=>`<button class="tap" data-j="${j}"><span class="n">${'ABCD'[j]}</span>${t}</button>`).join('')}</div>
+   <div class="why"></div></div>`;
+ const why=s.querySelector('.why');
+ s.querySelectorAll('.tap').forEach(b=>b.addEventListener('click',()=>{
+   if(b.disabled)return; const j=+b.dataset.j, ok=j===it.c;
+   s.querySelectorAll('.tap').forEach(x=>{x.disabled=true;
+     if(+x.dataset.j===it.c)x.classList.add('right');
+     else if(x===b)x.classList.add('wrong'); else x.classList.add('dead');});
+   why.innerHTML=(ok?'<b>Correct.</b> ':'<b>Wrong.</b> ')+it.why[j]; why.classList.add('on');
+   answered++; if(ok){correct++;bump(20);}else bump(5); step(); paint();
+   try{localStorage.setItem('lesson01',JSON.stringify({correct,answered,xp}))}catch(e){}
+ }));
+ quiz.appendChild(s);
+});
+
+function paint(){
+ document.getElementById('score').textContent=correct+'/'+QS.length;
+ const v=document.getElementById('verdict'),a=document.getElementById('advice');
+ if(answered<QS.length){v.textContent='Keep going.';a.textContent='';return;}
+ if(correct===5){v.textContent='Clean sweep.';a.textContent='You can name every part. Now build one.';}
+ else if(correct>=3){v.textContent='Solid, with gaps.';a.textContent='Re-read the wrong ones. Each trap was a rule that is true everywhere else.';}
+ else{v.textContent='Not yet.';a.textContent='Swipe back to the five parts. The quiz asks nothing they did not say.';}
+}
+paint();
+</script>
